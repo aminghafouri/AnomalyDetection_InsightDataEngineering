@@ -48,18 +48,18 @@ public:
 					for (auto n : frnds_cur->second) {
 						auto it = visited.find(n);
 						if (it == visited.end()) {
-							// for an unprocessed node, add its transactions to the heap if it satisfies the below conditions
+							// for an unprocessed node, add its transactions to the heap
 							auto trans_n = transactions.find(n);
 							if (trans_n != transactions.end() && !trans_n->second.empty()) {
-								for (auto i : trans_n->second) {
+								for (auto i = trans_n->second.rbegin(); i != trans_n->second.rend(); ++i) {
 									// add if heap is not full yet
 									if (heap.size() < T) {
-										heap.push(pair<string, double>(i.first, i.second));
+										heap.push(pair<string, double>(i->first, i->second));
 									}
 									// otherwise add only if the new entry is more recent than the oldest entry in the heap
-									else if (i.first > heap.top().first) {
+									else if (i->first > heap.top().first) {
 										heap.pop();
-										heap.push(pair<string, double>(i.first, i.second));
+										heap.push(pair<string, double>(i->first, i->second));
 									}
 								}
 							}
