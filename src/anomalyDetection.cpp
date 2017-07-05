@@ -12,20 +12,22 @@
 #include<queue>
 #include<set>
 #include<cmath>
+#include<ctime>
 using namespace std;
 
 
 class anomalyDetection {
 public:
-	anomalyDetection(string batch) {
-		this->readFile(batch, false);
+	anomalyDetection(string batch_log) {
+		this->readFile(batch_log, false);
 	}
-
+	
+	// Anomaly Detector
 	void anomalyDetector(string timestamp, int id, double amount) {
-		// Storing most recent transactions in a mean heap of size T
+		//  most recent transactions are stored in a mean heap of size T
 		priority_queue<pair<string, double>, vector<pair<string, double> >, std::greater<pair<string, double> > > heap;
 		
-		// BFS up to degree D
+		// BFS up to level D
 		unordered_set<int> visited;
 		queue<int> users;
 		visited.insert(id);
@@ -46,7 +48,7 @@ public:
 					for (auto n : frnds_cur->second) {
 						auto it = visited.find(n);
 						if (it == visited.end()) {
-							// for an unprocessed node, add its transactions to the heap
+							// for an unprocessed node, add its transactions to the heap if it satisfies the below conditions
 							auto trans_n = transactions.find(n);
 							if (trans_n != transactions.end() && !trans_n->second.empty()) {
 								for (auto i : trans_n->second) {
@@ -70,6 +72,7 @@ public:
 			}
 		}
 
+		// Deciding if anomalous through computing mean and std		
 		double sum = 0;
 		vector<double> nums;
 		while (!heap.empty()) {
@@ -80,18 +83,12 @@ public:
 		}
 		double mean = sum/T;
 		double std = 0.00;
-		
-		/*cout << "Heap: ";
-		for (auto i : nums)
-			cout << i << " ";
-		cout << endl;*/
 	
 		for (int i = 0; i < nums.size(); ++i)
 			std += pow(nums[i] - mean, 2)/T;
 
 		std = sqrt(std);
 		if (mean != 0 && nums.size() >= 2 && amount > mean + 3 * std) {
-			//cout << id << " " << amount << " is ANOMALY";
 			vector<string> v;
 			v.push_back(timestamp);
 			v.push_back(to_string(id));
@@ -100,14 +97,10 @@ public:
 			v.push_back(to_string(std));
 			flagged.push_back(v);
 		}
-		else {
-			//cout << id << " " << amount << " is not Anomaly";
-		}
-		//cout << endl;
 		
 	}
 
-	// processes each entry
+	// processes an entry
 	void process(string &event, string &timestamp, string &id_id1, string &amount_id2, bool &isStream) {
 		
 		// Case 1: Purchase
@@ -169,6 +162,7 @@ public:
 		}
 	}
 
+	// read file
 	void readFile(string file, bool isStream) {
 		ifstream batch_log(file); // Read input file
 		
@@ -262,20 +256,24 @@ public:
 	}
 
 	int T, D;
-	unordered_map<int, unordered_set<int> > network; // contains friends of each user
-	unordered_map<int, multimap<string, double> > transactions; // contains transactions of each user
-	vector<vector<string> > flagged; // contains transactions of each user
+	unordered_map<int, unordered_set<int> > network; // hash table where key is person's user id and value is set of the person's friends
+	unordered_map<int, multimap<string, double> > transactions; // hashtable where key is person's user id and value is multimap containing all previous transactions of the user
+	vector<vector<string> > flagged; // two-dimensional vector where at each row, we store information about the flagged entries
 
 };
 
 
 
 int main(int argc, char* argv[]) {
-	// location of batch_log and stream_log files
+	clock_t begin = clock();
+	// address of batch_log and stream_log files
 	string batch_log = "./log_input/batch_log.json";
 	string stream_log = "./log_input/stream_log.json";
 	anomalyDetection* obj = new anomalyDetection(batch_log);
 	obj->readFile(stream_log, true);
+	clock_t end = clock();
+	double elapsed_sec = double(end-begin)/CLOCKS_PER_SEC;
+	cout << elapsed_sec << endl;
 	delete obj;
 	return 0;
 }
